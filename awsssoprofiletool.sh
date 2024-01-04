@@ -29,7 +29,7 @@
 
 ACCOUNTPAGESIZE=10
 ROLEPAGESIZE=10
-PROFILEFILE="$HOME/.aws/config"
+PROFILEFILE="$HOME/.aws/awsssoprofiletool"
 
 if [ $# -lt 2 ];
 then
@@ -91,6 +91,7 @@ echo
 echo "$regurl"
 echo
 echo "Press <ENTER> after you have signed in to continue..."
+open "$regurl"
 
 read continue
 
@@ -206,8 +207,8 @@ do
 	    if [ -z "$output" ]; then output=$defoutput ; fi
 	    defoutput=$output
 	fi
-	
 	p="$rolename-$acctnum"
+
 	while true ; do
 	    if $interactive ;
 	    then
@@ -240,7 +241,10 @@ do
 	done
 	echo -n "Creating $profilename... "
 	echo "" >> "$profilefile"
-	echo "[profile $profilename]" >> "$profilefile"
+ 	# The below sets the profile name in the cli
+	# echo "[profile $profilename]" >> "$profilefile"
+	# Use acctname for profile name, convert spaces to dash and all to lowercase
+	echo "[profile $(echo $acctname | tr ' ' '-' | tr '[:upper:]' '[:lower:]')]" >> "$profilefile"
 	echo "sso_start_url = $2" >> "$profilefile"
 	echo "sso_region = $1" >> "$profilefile"
 	echo "sso_account_id = $acctnum" >> "$profilefile"

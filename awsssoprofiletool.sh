@@ -116,6 +116,16 @@ token=$(awk -F ' ' '{print $1}' <<< "$out")
 defregion="$1"
 defoutput="json"
 
+echo
+echo "What name would you like to use for the main SSO session profile?"
+read ssoprofilename < /dev/tty
+if [ -z "$ssoprofilename" ];
+then
+echo "Using main-sso-session for the main SSO session profile."
+	ssoprofilename="main-sso-session"
+fi
+echo
+
 # Batch or interactive
 
 echo
@@ -162,6 +172,16 @@ echo "" >> "$profilefile"
 echo "###" >> "$profilefile"
 echo "### The section below added by awsssoprofiletool.sh" >> "$profilefile"
 echo "###" >> "$profilefile"
+echo "" >> "$profilefile"
+
+# Create main sso session profile
+# Convert spaces to dash and all to lowercase
+ssoprofilenameconverted=$(echo $ssoprofilename | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
+echo "# $ssoprofilename SSO session" >> "$profilefile"
+echo "[sso-session $ssoprofilenameconverted]" >> "$profilefile"
+echo "sso_start_url = $2" >> "$profilefile"
+echo "sso_region = $1" >> "$profilefile"
+echo "sso_registration_scopes = sso:account:access" >> "$profilefile"
 
 # Read in accounts
 
@@ -227,7 +247,7 @@ do
 	    
 	    if [ $(grep -ce "^\s*\[\s*profile\s\s*$profilename\s*\]" "$profilefile") -eq 0 ];
 	    then
-		break
+			break
 	    else
 		echo "Profile name already exists!"
 		if $interactive ;
@@ -239,12 +259,17 @@ do
 		fi
 	    fi
 	done
-	echo -n "Creating $profilename... "
+	# Use acctname for profile name, convert spaces to dash and all to lowercase
+	betterprofilename=$(echo $acctname | tr ' ' '-' | tr '[:upper:]' '[:lower:]')
+	if [ $(grep -ce "^\s*\[\s*profile\s\s*$betterprofilename\s*\]" "$profilefile") -eq 1 ];
+	then
+		echo "Profile name already exists! Appending -1 to profile name."
+		betterprofilename="$betterprofilename-1"
+	fi
+	echo -n "Creating $betterprofilename... "
 	echo "" >> "$profilefile"
  	# The below sets the profile name in the cli
-	# echo "[profile $profilename]" >> "$profilefile"
-	# Use acctname for profile name, convert spaces to dash and all to lowercase
-	echo "[profile $(echo $acctname | tr ' ' '-' | tr '[:upper:]' '[:lower:]')]" >> "$profilefile"
+	echo "[profile $betterprofilename]" >> "$profilefile"
 	echo "sso_start_url = $2" >> "$profilefile"
 	echo "sso_region = $1" >> "$profilefile"
 	echo "sso_account_id = $acctnum" >> "$profilefile"
@@ -252,7 +277,7 @@ do
 	echo "region = $awsregion" >> "$profilefile"
 	echo "output = $output" >> "$profilefile"
 	echo "Succeeded"
-	created_profiles+=("$profilename")
+	created_profiles+=("$betterprofilename")
     done < "$rolesfile"
     rm "$rolesfile"
 

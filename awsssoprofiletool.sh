@@ -152,9 +152,10 @@ echo
 echo -n "Retrieving accounts... "
 
 acctsfile="$(mktemp ./sso.accts.XXXXXX)"
+acctsfilesorted="$(mktemp ./sso.accts.XXXXXX)"
 
 # Set up trap to clean up temp file
-trap '{ rm -f "$acctsfile"; echo; exit 255; }' SIGINT SIGTERM
+trap '{ rm -f "$acctsfile" "$acctsfilesorted"; echo; exit 255; }' SIGINT SIGTERM
     
 aws sso list-accounts --access-token "$token" --page-size $ACCOUNTPAGESIZE --region "$1" --output text > "$acctsfile"
 
@@ -165,6 +166,9 @@ then
 else
     echo "Succeeded"
 fi
+
+# Sort accounts by name
+sort -k 3,3 "$acctsfile" > "$acctsfilesorted" && cp "$acctsfilesorted" "$acctsfile"
 
 declare -a created_profiles
 
@@ -191,8 +195,8 @@ do
     echo "Adding roles for account $acctnum ($acctname)..."
     rolesfile="$(mktemp ./sso.roles.XXXXXX)"
 
-    # Set up trap to clean up both temp files
-    trap '{ rm -f "$rolesfile" "$acctsfile"; echo; exit 255; }' SIGINT SIGTERM
+    # Set up trap to clean up all temp files
+    trap '{ rm -f "$rolesfile" "$acctsfile" "$acctsfilesorted"; echo; exit 255; }' SIGINT SIGTERM
     
     aws sso list-account-roles --account-id "$acctnum" --access-token "$token" --page-size $ROLEPAGESIZE --region "$1" --output text > "$rolesfile"
 
